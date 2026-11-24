@@ -894,3 +894,41 @@ describe('Pattern spanning multiple parts', () => {
     })
   })
 })
+
+describe('Regex alternation in pattern', () => {
+  const node = new Node()
+  node.insert('get', '/:type{foo|bar}', 'match')
+  node.insert('get', '/:type{foo|bar}/items', 'items')
+
+  it('should match exact alternation branches only', () => {
+    const [resFoo] = node.search('get', '/foo')
+    expect(resFoo.length).toBe(1)
+    expect(resFoo[0][0]).toEqual('match')
+    expect(resFoo[0][1]).toEqual({ type: 'foo' })
+
+    const [resBar] = node.search('get', '/bar')
+    expect(resBar.length).toBe(1)
+    expect(resBar[0][0]).toEqual('match')
+    expect(resBar[0][1]).toEqual({ type: 'bar' })
+
+    expect(node.search('get', '/foobar')[0].length).toBe(0)
+    expect(node.search('get', '/xbar')[0].length).toBe(0)
+    expect(node.search('get', '/foo-extra')[0].length).toBe(0)
+    expect(node.search('get', '/baz-bar')[0].length).toBe(0)
+  })
+
+  it('should match exact alternation branches followed by static segment', () => {
+    const [resFoo] = node.search('get', '/foo/items')
+    expect(resFoo.length).toBe(1)
+    expect(resFoo[0][0]).toEqual('items')
+    expect(resFoo[0][1]).toEqual({ type: 'foo' })
+
+    const [resBar] = node.search('get', '/bar/items')
+    expect(resBar.length).toBe(1)
+    expect(resBar[0][0]).toEqual('items')
+    expect(resBar[0][1]).toEqual({ type: 'bar' })
+
+    expect(node.search('get', '/foo-extra/items')[0].length).toBe(0)
+    expect(node.search('get', '/xbar/items')[0].length).toBe(0)
+  })
+})

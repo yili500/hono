@@ -73,12 +73,34 @@ describe('url', () => {
 
     it('regex pattern', () => {
       const res = getPattern(':id{[0-9]+}')
-      expect(res).toEqual([':id{[0-9]+}', 'id', /^[0-9]+$/])
+      expect(res).toEqual([':id{[0-9]+}', 'id', /^(?:[0-9]+)$/])
     })
 
     it('regex pattern with next', () => {
       const res = getPattern(':id{[0-9]+}', 'next')
-      expect(res).toEqual([':id{[0-9]+}#next', 'id', /^[0-9]+(?=\/next)/])
+      expect(res).toEqual([':id{[0-9]+}#next', 'id', /^(?:[0-9]+)(?=\/next)/])
+    })
+
+    it('regex pattern with alternation', () => {
+      const res = getPattern(':type{foo|bar}')
+      expect(res).toEqual([':type{foo|bar}', 'type', /^(?:foo|bar)$/])
+      const regex = res![2] as RegExp
+      expect(regex.test('foo')).toBe(true)
+      expect(regex.test('bar')).toBe(true)
+      expect(regex.test('foobar')).toBe(false)
+      expect(regex.test('xbar')).toBe(false)
+      expect(regex.test('foo-extra')).toBe(false)
+    })
+
+    it('regex pattern with alternation and next', () => {
+      const res = getPattern(':type{foo|bar}', 'next')
+      expect(res).toEqual([':type{foo|bar}#next', 'type', /^(?:foo|bar)(?=\/next)/])
+      const regex = res![2] as RegExp
+      expect(regex.exec('foo/next')?.[0]).toBe('foo')
+      expect(regex.exec('bar/next')?.[0]).toBe('bar')
+      expect(regex.exec('foo/other')).toBeNull()
+      expect(regex.exec('xbar/next')).toBeNull()
+      expect(regex.exec('foobar/next')).toBeNull()
     })
 
     it('wildcard', () => {
